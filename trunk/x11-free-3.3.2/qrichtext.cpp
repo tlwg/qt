@@ -1,5 +1,5 @@
 /****************************************************************************
-** $Id: qrichtext.cpp,v 1.1 2004-06-01 11:54:24 ott Exp $
+** $Id: qrichtext.cpp,v 1.2 2004-06-01 11:55:56 ott Exp $
 **
 ** Implementation of the internal Qt classes dealing with rich text
 **
@@ -5708,6 +5708,7 @@ int QTextFormatterBreakWords::format( QTextDocument *doc, QTextParagraph *parag,
     int ww = 0;
     QChar lastChr = c->c;
     QTextFormat *lastFormat = c->format();
+
     for ( ; i < len; ++i, ++col ) {
 	if ( i ) {
 	    c = &parag->string()->at(i-1);
@@ -5819,6 +5820,36 @@ int QTextFormatterBreakWords::format( QTextDocument *doc, QTextParagraph *parag,
 	// we break at w pixels and the current char would exceed that
 	// or - we break at a column and the current character would
 	// exceed that.
+	
+	// Thai no-space vowels and tonemarks check
+	//printf("QTextFormatterBreakInWords::format		len is: %d\n",len);
+	//printf("QTextFormatterBreakInWords::format		col is: %d\n",col);
+
+	int isNoSpace = 0;
+	if ( c->c.row() == 0x0e ) {
+	  // Thai
+	  unsigned char col = c->c.cell();
+	  if ( col == 0x31 || 
+	       col == 0x34 ||
+	       col == 0x35 ||
+	       col == 0x36 ||
+	       col == 0x37 ||
+	       col == 0x38 ||
+	       col == 0x39 ||
+	       col == 0x3a ||
+	       col == 0x47 ||
+	       col == 0x48 ||
+	       col == 0x49 ||
+	       col == 0x4a ||
+	       col == 0x4b ||
+	       col == 0x4c ||
+	       col == 0x4d ||
+	       col == 0x4e ) {
+	    isNoSpace = 1;
+	  }
+	}
+	col -= isNoSpace;
+
 	if ( lastWasHardBreak || lastWasOwnLineCustomItem ||
 	     ( wrapEnabled &&
 	       ( (!c->c.isSpace() && (hadBreakableChar || allowBreakInWords()) &&

@@ -1,5 +1,5 @@
 /****************************************************************************
-** $Id: qscriptengine.cpp,v 1.1 2004-06-01 11:54:25 ott Exp $
+** $Id: qscriptengine.cpp,v 1.2 2004-06-01 11:55:56 ott Exp $
 **
 ** ???
 **
@@ -261,19 +261,29 @@ static void heuristicSetGlyphAttributes( const QString &string, int from, int le
 
 	    if ( cmb == 0 ) {
 		// Fix 0 combining classes
-		if ( uc[pos].row() == 0x0e ) {
-		    // thai or lao
-		    unsigned char col = uc[pos].cell();
-		    if ( col == 0x31 ||
-			 col == 0x34 ||
-			 col == 0x35 ||
-			 col == 0x36 ||
-			 col == 0x37 ||
-			 col == 0x47 ||
-			 col == 0x4c ||
-			 col == 0x4d ||
-			 col == 0x4e ) {
-			cmb = QChar::Combining_AboveRight;
+                if ( uc[pos].row() == 0x0e ) {
+                    // thai or lao
+                    unsigned char col = uc[pos].cell();
+		    // Thai
+                    if ( col == 0x31 ||
+                         col == 0x34 ||
+                         col == 0x35 ||
+                         col == 0x36 ||
+                         col == 0x37 ||
+                         col == 0x47 ||
+                         col == 0x48 ||
+                         col == 0x49 ||
+                         col == 0x4a ||
+                         col == 0x4b ||
+                         col == 0x4c ||
+                         col == 0x4d ||
+                         col == 0x4e ) {
+                        cmb = QChar::Combining_AboveRight;
+                    } else if ( col == 0x38 ||
+                         col == 0x39 ||
+                         col == 0x3a ) {
+                        cmb = QChar::Combining_Below;
+		    // Lao
 		    } else if ( col == 0xb1 ||
 				col == 0xb4 ||
 				col == 0xb5 ||
