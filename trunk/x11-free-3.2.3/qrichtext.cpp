@@ -1,5 +1,5 @@
 /****************************************************************************
-** $Id: qrichtext.cpp,v 1.2 2004-04-29 17:08:32 ott Exp $
+** $Id: qrichtext.cpp,v 1.3 2004-04-29 17:15:23 ott Exp $
 **
 ** Implementation of the internal Qt classes dealing with rich text
 **
@@ -65,6 +65,12 @@
 
 #include <stdlib.h>
 
+/* Need dlfcn.h for the routines to dynamically load 
+ * thai word cut library so that there is no need to
+ * include the header file when compilng
+ * */
+#include <dlfcn.h>
+
 static QTextCursor* richTextExportStart = 0;
 static QTextCursor* richTextExportEnd = 0;
 
@@ -108,10 +114,85 @@ static inline int scale( int value, QPainter *painter )
 }
 
 
+#include <qtextcodec.h>
+bool isBreakableThai(QTextString *string, int pos) {
+  static QCString *thaiCache;
+  static QCString *oldString;
+  static QTextCodec *thaiCodec = QTextCodec::codecForMib(2259);
+#define MAXWBRPOS 32000
+  static int wbrpos[MAXWBRPOS];
+  static unsigned int numwbrpos = 0;
+
+  // for libthai
+  const char *error;
+  static void *module;
+  typedef int (*th_brk_def)(const char*, int[], int);
+  static th_brk_def th_brk = 0;
+
+  if ( ! th_brk ) {
+    module = dlopen("libthai.so.0", RTLD_LAZY);
+    if (!module) {
+      //fprintf(stderr,"Warning: couldn't open libthai.so: %s, thai word break feature disabled\n", dlerror());
+      // no wordcut library, break anywhere is ok
+      return TRUE;
+    } else {
+      dlerror();
+      th_brk = (th_brk_def) dlsym(module, "th_brk");
+      if ((error = dlerror())) {
+	//fprintf(stderr, "Warning: couldn't find libthai: %s\n",error);
+	//fprintf(stderr, ", thai word break feature disabled\n");
+	// no working wordcut library, break anywhere is ok
+	return TRUE;
+      }
+    }
+  }
+  
+  //fprintf(stderr,"Thai word break feature enabled...\n");
+  
+  thaiCache = new QCString;
+  *thaiCache = thaiCodec->fromUnicode( string->toString() );
+  
+  if ( oldString && *thaiCache != *oldString ) {
+    //fprintf(stderr,"new string found (not in cache), calling libthai\n");
+    //printf("About to call libthai::th_brk with str: %s, pos: %d\n",thaiCache->data(),pos);
+    numwbrpos = (*th_brk)( thaiCache->data(), wbrpos, MAXWBRPOS);
+    //fprintf(stderr,"libthai returns with value %d\n",numwbrpos);
+
+    delete oldString;
+    //dlclose(module);
+  } else {
+    //fprintf(stderr,"old string found in the cache, not call libthai\n");
+  }
+  oldString = thaiCache;
+
+  pos = pos + 1; // not the same pos to libthai
+  if ( numwbrpos > 0 ) {
+    for (int i = numwbrpos-1; i >= 0;i--) {
+      if ( ( wbrpos[i]) == pos ) {
+	//printf("wbrpos[%d] is %d, return: true\n",i-1,pos);
+	return true;
+      } else {
+	//printf("wbrpos[%d] is %d\n",i-1, wbrpos[i-1]);
+      }
+    }
+  }
+  return false;
+}
+
 inline bool isBreakable( QTextString *string, int pos )
 {
     if (string->at(pos).nobreak)
 	return FALSE;
+
+    const QChar &c = string->at( pos ).c;
+    uchar row = c.row();
+    if ( row == 0x0e ) {
+      // 0e00 - 0e7f == Thai
+      if ( c.cell() < 0x80 ) {
+	return isBreakableThai(string, pos);
+      }
+    };
+
     return (pos < string->length()-1 && string->at(pos+1).softBreak);
 }
 
