@@ -1,12 +1,11 @@
-==== //depot/qt/3/src/kernel/qtextengine.cpp#32 - /home/lars/dev/qt-3/src/kernel/qtextengine.cpp ====
---- /tmp/tmp.4824.0	2005-01-14 09:47:21.702603728 +0100
-+++ /home/lars/dev/qt-3/src/kernel/qtextengine.cpp	2005-01-14 09:47:20.457792968 +0100
-@@ -829,6 +829,8 @@
-         int tcls = ncls;
-         if (tcls >= QUnicodeTables::LineBreak_SA)
-             tcls = QUnicodeTables::LineBreak_ID;
-+        if (cls >= QUnicodeTables::LineBreak_SA)
-+            cls = QUnicodeTables::LineBreak_ID;
+--- qtextengine.cpp.orig	2005-02-12 16:15:32.000000000 +0900
++++ qtextengine.cpp	2005-02-12 16:17:54.000000000 +0900
+@@ -816,6 +816,8 @@
+ 
+ 	if (ncls >= QUnicodeTables::LineBreak_SA)
+ 	    tcls = QUnicodeTables::LineBreak_ID;
++	if (cls >= QUnicodeTables::LineBreak_SA)
++	    cls = QUnicodeTables::LineBreak_ID;
  
  	int brk = charAttributes[i].charStop ? breakTable[cls][tcls] : (int)Pbk;
- #endif
+ 	if (brk == Ibk)
