@@ -1,0 +1,114 @@
+==== //depot/qt/3/src/kernel/qtextengine.cpp#27 - /home/lars/dev/qt-3/src/kernel/qtextengine.cpp ====
+--- /tmp/tmp.5905.0	2004-05-07 11:06:38.000000000 +0200
++++ /home/lars/dev/qt-3/src/kernel/qtextengine.cpp	2004-05-07 10:59:57.000000000 +0200
+@@ -804,16 +804,20 @@
+ 
+     for (int i = 1; i < len; ++i) {
+ 	int ncls = lineBreakClass(uc[i]);
++        int tcls = ncls;
+ 
+ 	if (ncls == QUnicodeTables::LineBreak_SP || ncls == QUnicodeTables::LineBreak_CM) {
+ 	    charAttributes[i].softBreak = FALSE;
+ 	    continue;
+ 	}
+-	if (ncls >= QUnicodeTables::LineBreak_SA) {
+-	    // ### handle complex case
+-	    ncls = QUnicodeTables::LineBreak_ID;
+-	}
+-	int brk = charAttributes[i].charStop ? breakTable[cls][ncls] : (int)Pbk;
++        if (cls == QUnicodeTables::LineBreak_SA && ncls == QUnicodeTables::LineBreak_SA)
++            // two complex chars (thai or lao), thai_attributes has already set this correctly
++            continue;
++
++	if (ncls >= QUnicodeTables::LineBreak_SA)
++	    tcls = QUnicodeTables::LineBreak_ID;
++
++	int brk = charAttributes[i].charStop ? breakTable[cls][tcls] : (int)Pbk;
+ 	if (brk == Ibk)
+ 	    charAttributes[i].softBreak = (lineBreakClass(uc[i-1]) == QUnicodeTables::LineBreak_SP);
+ 	else
+==== //depot/qt/3/src/kernel/qscriptengine_x11.cpp#46 - /home/lars/dev/qt-3/src/kernel/qscriptengine_x11.cpp ====
+--- /tmp/tmp.5907.0	2004-05-07 11:06:47.000000000 +0200
++++ /home/lars/dev/qt-3/src/kernel/qscriptengine_x11.cpp	2004-05-07 11:02:54.000000000 +0200
+@@ -1844,8 +1844,69 @@
+ //
+ // --------------------------------------------------------------------------------------------------------------------------------------------
+ 
++#include <qtextcodec.h>
++#include <qlibrary.h>
+ 
+ 
++static void thaiWordBreaks(const QChar *string, const int len, QCharAttributes *attributes)
++{
++    typedef int (*th_brk_def)(const char*, int[], int);
++    static QTextCodec *thaiCodec = QTextCodec::codecForMib(2259);
++    static th_brk_def th_brk = 0;
++
++    /* load libthai dynamically */
++    if (!th_brk && thaiCodec) {
++        th_brk = (th_brk_def)QLibrary::resolve("thai", "th_brk");
++        if (!th_brk)
++            thaiCodec = 0;
++    }
++
++    if (!th_brk)
++        return;
++
++    QCString cstr = thaiCodec->fromUnicode( QConstString(string, len).string());
++
++    int brp[128];
++    int *break_positions = brp;
++    int numbreaks = th_brk(cstr.data(), break_positions, 128);
++    if (numbreaks > 128) {
++        break_positions = new int[numbreaks];
++        numbreaks = th_brk(cstr.data(),break_positions, numbreaks);
++    }
++
++    for (int i = 0; i < len; ++i)
++        attributes[i].softBreak = FALSE;
++
++    for (int i = 0; i < numbreaks; ++i)
++        attributes[break_positions[i]].softBreak = TRUE;
++
++    if (break_positions != brp)
++        delete [] break_positions;
++}
++
++
++static void thai_attributes( int script, const QString &text, int from, int len, QCharAttributes *attributes )
++{
++    const QChar *uc = text.unicode() + from;
++    attributes += from;
++
++    QCharAttributes *a = attributes;
++    for ( int i = 0; i < len; i++ ) {
++	QChar::Category cat = ::category( *uc );
++	a->whiteSpace = (cat == QChar::Separator_Space) && (uc->unicode() != 0xa0);
++	a->charStop = (cat != QChar::Mark_NonSpacing);
++        // if we don't know any better, every charstop is a possible line break.
++	a->softBreak = a->charStop;
++	a->wordStop = FALSE;
++	a->invalid = FALSE;
++	++uc;
++	++a;
++    }
++
++    if (script == QFont::Thai)
++        thaiWordBreaks(text.unicode() + from, len, attributes);
++}
++
+ 
+ // --------------------------------------------------------------------------------------------------------------------------------------------
+ //
+@@ -2955,9 +3016,9 @@
+ 	// Sinhala,
+     { indic_shape, indic_attributes },
+ 	// Thai,
+-    { basic_shape, basic_attributes },
++    { basic_shape, thai_attributes },
+ 	// Lao,
+-    { basic_shape, basic_attributes },
++    { basic_shape, thai_attributes },
+ 	// Tibetan,
+     { tibetan_shape, tibetan_attributes },
+ 	// Myanmar,
