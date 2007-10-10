@@ -1,0 +1,22 @@
+--- qtextlayout.cpp.org	2007-08-07 20:08:43.000000000 +0700
++++ qtextlayout.cpp	2007-10-10 11:18:02.000000000 +0700
+@@ -651,7 +651,7 @@
+             oldPos++;
+ 
+         while (oldPos < len && !attributes[oldPos-1].whiteSpace
+-               && !d->atWordSeparator(oldPos))
++               && !d->atWordSeparator(oldPos)  && attributes[oldPos-1].lineBreakType!=2)
+             oldPos++;
+     }
+ //      qDebug("  -> %d", oldPos);
+@@ -679,8 +679,8 @@
+             oldPos--;
+ 
+         while (oldPos && !attributes[oldPos-1].whiteSpace
+-               && !d->atWordSeparator(oldPos - 1))
+-            oldPos--;
++               && !d->atWordSeparator(oldPos - 1) && attributes[oldPos-1].lineBreakType!=2)
++	    oldPos--;
+     }
+ //     qDebug("  -> %d", oldPos);
+     return oldPos;
