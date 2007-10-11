@@ -57,7 +57,7 @@
  #endif
  
 -    if (!th_brk)
-+    if (!th_brk && !th_chlevel && !th_uni2tis)
++    if (!th_brk || !th_chlevel || !th_uni2tis)
          return;
  
      QByteArray cstr = thaiCodec->fromUnicode(QString(string, len));
