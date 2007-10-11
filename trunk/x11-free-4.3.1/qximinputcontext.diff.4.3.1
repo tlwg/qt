@@ -42,8 +42,8 @@
 +        switch (conv_data->direction)
 +        {
 +            case XIMForwardChar:
-+            if (cursor_index > 0 && (i = cursor_index+position) >= 0)
-+                for (i; i < cursor_index+position+conv_data->factor; i++)
++            if (cursor_index > 0 && cursor_index+position >= 0)
++                for (i = cursor_index+position; i < cursor_index+position+conv_data->factor; i++)
 +                   str_tmp.append(surrounding[i]);
 +                                       
 +            subst_offset = position + conv_data->factor;
@@ -51,8 +51,8 @@
 +            break;
 +        
 +            case XIMBackwardChar:
-+            if (cursor_index > 0 && (i = cursor_index+position-conv_data->factor) >= 0)
-+                for (i; i < cursor_index+position; i++)
++            if (cursor_index > 0 && cursor_index+position-conv_data->factor >= 0)
++                for (i = cursor_index+position-conv_data->factor; i < cursor_index+position; i++)
 +                   str_tmp.append(surrounding[i]);
 +                
 +            subst_offset = position - conv_data->factor;
