@@ -89,3 +89,15 @@
  }
  #endif
  
+--- qtextcursor.cpp.org	2007-08-07 20:08:43.000000000 +0700
++++ qtextcursor.cpp	2007-10-26 18:06:33.000000000 +0700
+@@ -412,7 +412,8 @@
+         relativePos++;
+         while (relativePos < len
+                && !attributes[relativePos].whiteSpace
+-               && !engine->atWordSeparator(relativePos))
++               && !engine->atWordSeparator(relativePos)
++               && (attributes[relativePos-1].lineBreakType != QCharAttributes::Break))
+             relativePos++;
+ 
+         newPosition = blockIt.position() + relativePos;
