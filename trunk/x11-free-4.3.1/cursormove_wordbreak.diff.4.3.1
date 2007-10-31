@@ -18,8 +18,8 @@
              oldPos--;
      }
  //     qDebug("  -> %d", oldPos);
---- qscriptengine.cpp.org	2007-08-07 20:08:43.000000000 +0700
-+++ qscriptengine.cpp	2007-10-11 12:06:15.000000000 +0700
+--- qscriptengine.cpp.org   2007-08-07 20:08:43.000000000 +0700
++++ qscriptengine.cpp   2007-10-31 15:10:59.000000000 +0700
 @@ -3474,7 +3474,7 @@
  
  
@@ -29,7 +29,7 @@
  {
  #ifdef QT_NO_TEXTCODEC
      Q_UNUSED(string);
-@@ -3482,19 +3482,29 @@
+@@ -3482,40 +3482,48 @@
      Q_UNUSED(attributes);
  #else
      typedef int (*th_brk_def)(const char*, int[], int);
@@ -61,9 +61,16 @@
          return;
  
      QByteArray cstr = thaiCodec->fromUnicode(QString(string, len));
-@@ -3507,12 +3517,15 @@
-         numbreaks = th_brk(cstr.data(),break_positions, numbreaks);
-     }
+ 
+-    int brp[128];
+-    int *break_positions = brp;
+-    int numbreaks = th_brk(cstr.constData(), break_positions, 128);
+-    if (numbreaks > 128) {
+-        break_positions = new int[numbreaks];
+-        numbreaks = th_brk(cstr.data(),break_positions, numbreaks);
+-    }
++    int *break_positions = new int[from + len];
++    int numbreaks = th_brk(cstr.constData(), break_positions, from + len);
  
 -    for (int i = 0; i < len - 1; ++i)
 +    for (int i = from; i < from + len; ++i) {
@@ -79,8 +86,12 @@
 +            attributes[break_positions[i]-1+from].lineBreakType = QCharAttributes::Break;
      }
  
-     if (break_positions != brp)
-@@ -3527,7 +3540,7 @@
+-    if (break_positions != brp)
++    if (break_positions != NULL)
+         delete [] break_positions;
+ #endif // QT_NO_TEXTCODEC
+ }
+@@ -3527,7 +3535,7 @@
  {
      Q_UNUSED(script);
      Q_ASSERT(script == QUnicodeTables::Thai);
