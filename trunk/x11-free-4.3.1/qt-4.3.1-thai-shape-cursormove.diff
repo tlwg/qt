@@ -1,0 +1,388 @@
+diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-opensource-src-4.3.1/src/gui/text/qscriptengine.cpp
+--- qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp	2007-08-07 20:08:43.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/qscriptengine.cpp	2007-11-08 15:15:48.000000000 +0700
+@@ -3470,8 +3470,13 @@
+ // --------------------------------------------------------------------------------------------------------------------------------------------
+ 
+ #include <qtextcodec.h>
+-#include <qlibrary.h>
+ 
++#include "thai/thrend.h"
++#include "thai/thcell.h"
++#include "thai/thwchar.h"
++
++#include "thai/thbrk.h"
++#include "thai/thctype.h"
+ 
+ #if defined(Q_WS_X11) || defined(Q_WS_QWS) || defined(Q_WS_MAC)
+ static void thaiWordBreaks(const QChar *string, const int len, QCharAttributes *attributes)
+@@ -3481,41 +3486,48 @@
+     Q_UNUSED(len);
+     Q_UNUSED(attributes);
+ #else
+-    typedef int (*th_brk_def)(const char*, int[], int);
+     static QTextCodec *thaiCodec = QTextCodec::codecForMib(2259);
+-    static th_brk_def th_brk = 0;
+ 
+-#ifndef QT_NO_LIBRARY
+-    /* load libthai dynamically */
+-    if (!th_brk && thaiCodec) {
+-        th_brk = (th_brk_def)QLibrary::resolve(QLatin1String("thai"), "th_brk");
+-        if (!th_brk)
+-            thaiCodec = 0;
+-    }
+-#endif
++    QByteArray cstr = thaiCodec->fromUnicode(QString(string, len));
+ 
+-    if (!th_brk)
+-        return;
++    int *break_positions = new int[len];
++    int numbreaks = th_brk((const thchar_t*)(cstr.constData()), break_positions, len);
++    int c_flag = 0;
++
++    //Set CharStop
++    QByteArray tis_str = thaiCodec->fromUnicode(const_cast<QChar *>(string), len);
++    thchar_t* tis_text = (thchar_t*)tis_str.data();
++    int tis_length = strlen((char *)tis_text);
++
++    for (int i = 0;i < len;/* nop */) {
++        int cell_length;
++        struct thcell_t tis_cell;
++        cell_length = th_next_cell (tis_text + i, tis_length - i, &tis_cell, TRUE);
+ 
+-    QByteArray cstr = thaiCodec->fromUnicode(QString(string, len));
++        attributes[i].charStop = true;
++        for(int j = 1;j < cell_length;j++)
++            attributes[i + j].charStop = false;
++
++        // Set Char Stop SARA AM
++        if (tis_text[i + cell_length - 1] == 0xd3) {
++             attributes[i + cell_length - 1].charStop = true;
++        }
+ 
+-    int brp[128];
+-    int *break_positions = brp;
+-    int numbreaks = th_brk(cstr.constData(), break_positions, 128);
+-    if (numbreaks > 128) {
+-        break_positions = new int[numbreaks];
+-        numbreaks = th_brk(cstr.data(),break_positions, numbreaks);
++        i += cell_length;
+     }
+ 
+-    for (int i = 0; i < len - 1; ++i)
++    for (int i = 0; i < len; ++i)
+         attributes[i].lineBreakType = QCharAttributes::NoBreak;
+ 
+     for (int i = 0; i < numbreaks; ++i) {
+         if (break_positions[i] > 0)
+-            attributes[break_positions[i]-1].lineBreakType = QCharAttributes::Break;
++            attributes[break_positions[i] - 1].lineBreakType = QCharAttributes::Break;
+     }
+ 
+-    if (break_positions != brp)
++//     for (int i = 0; i < len; ++i)
++//         qDebug("attributes[%d].charStop = %d",i,attributes[i].charStop);
++
++    if (break_positions != NULL)
+         delete [] break_positions;
+ #endif // QT_NO_TEXTCODEC
+ }
+@@ -3527,11 +3539,252 @@
+ {
+     Q_UNUSED(script);
+     Q_ASSERT(script == QUnicodeTables::Thai);
+-    thaiWordBreaks(text.unicode() + from, len, attributes);
++    thaiWordBreaks(text.unicode() + from, len, attributes + from);
+ }
+ #endif
+ 
+ 
++// Thai Shaper
++/* TIS-to-Unicode glyph maps for characters 0x80-0xff
++ */
++static int tis620_0[128] = {
++    /**/ 0,      0,      0,      0,      0,      0,      0,      0, 
++    /**/ 0,      0,      0,      0,      0,      0,      0,      0, 
++    /**/ 0,      0,      0,      0,      0,      0,      0,      0, 
++    /**/ 0,      0,      0,      0,      0,      0,      0,      0, 
++    0x0020, 0x0e01, 0x0e02, 0x0e03, 0x0e04, 0x0e05, 0x0e06, 0x0e07,
++    0x0e08, 0x0e09, 0x0e0a, 0x0e0b, 0x0e0c, 0x0e0d, 0x0e0e, 0x0e0f,
++    0x0e10, 0x0e11, 0x0e12, 0x0e13, 0x0e14, 0x0e15, 0x0e16, 0x0e17,
++    0x0e18, 0x0e19, 0x0e1a, 0x0e1b, 0x0e1c, 0x0e1d, 0x0e1e, 0x0e1f,
++    0x0e20, 0x0e21, 0x0e22, 0x0e23, 0x0e24, 0x0e25, 0x0e26, 0x0e27,
++    0x0e28, 0x0e29, 0x0e2a, 0x0e2b, 0x0e2c, 0x0e2d, 0x0e2e, 0x0e2f,
++    0x0e30, 0x0e31, 0x0e32, 0x0e33, 0x0e34, 0x0e35, 0x0e36, 0x0e37,
++    0x0e38, 0x0e39, 0x0e3a,      0,      0,      0,      0, 0x0e3f,
++    0x0e40, 0x0e41, 0x0e42, 0x0e43, 0x0e44, 0x0e45, 0x0e46, 0x0e47,
++    0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e, 0x0e4f,
++    0x0e50, 0x0e51, 0x0e52, 0x0e53, 0x0e54, 0x0e55, 0x0e56, 0x0e57,
++    0x0e58, 0x0e59, 0x0e5a, 0x0e5b,      0,      0,      0,      0
++};
++
++static int tis620_1[128] = {
++    0xf89e,      0,      0, 0xf88c, 0xf88f, 0xf892, 0xf895, 0xf898,
++    0xf88b, 0xf88e, 0xf891, 0xf894, 0xf897,      0,      0, 0xf899,
++    0xf89a,      0, 0xf884, 0xf889, 0xf885, 0xf886, 0xf887, 0xf888,
++    0xf88a, 0xf88d, 0xf890, 0xf893, 0xf896,      0,      0,      0,
++    /**/ 0, 0x0e01, 0x0e02, 0x0e03, 0x0e04, 0x0e05, 0x0e06, 0x0e07,
++    0x0e08, 0x0e09, 0x0e0a, 0x0e0b, 0x0e0c, 0x0e0d, 0x0e0e, 0x0e0f,
++    0x0e10, 0x0e11, 0x0e12, 0x0e13, 0x0e14, 0x0e15, 0x0e16, 0x0e17,
++    0x0e18, 0x0e19, 0x0e1a, 0x0e1b, 0x0e1c, 0x0e1d, 0x0e1e, 0x0e1f,
++    0x0e20, 0x0e21, 0x0e22, 0x0e23, 0x0e24, 0x0e25, 0x0e26, 0x0e27,
++    0x0e28, 0x0e29, 0x0e2a, 0x0e2b, 0x0e2c, 0x0e2d, 0x0e2e, 0x0e2f,
++    0x0e30, 0x0e31, 0x0e32, 0x0e33, 0x0e34, 0x0e35, 0x0e36, 0x0e37,
++    0x0e38, 0x0e39, 0x0e3a,      0,      0,      0,      0, 0x0e3f,
++    0x0e40, 0x0e41, 0x0e42, 0x0e43, 0x0e44, 0x0e45, 0x0e46, 0x0e47,
++    0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d,      0, 0x0e4f,
++    0x0e50, 0x0e51, 0x0e52, 0x0e53, 0x0e54, 0x0e55, 0x0e56, 0x0e57,
++    0x0e58, 0x0e59,      0,      0, 0xf89b, 0xf89c, 0xf89d,      0
++};
++
++static int tis620_2[128] = {
++    0xf700, 0xf701, 0xf702, 0xf703, 0xf704, 0x2026, 0xf705, 0xf706,
++    0xf707, 0xf708, 0xf709, 0xf70a, 0xf70b, 0xf70c, 0xf70d, 0xf70e,
++    0xf70f, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014,
++    0xf710, 0xf711, 0xf712, 0xf713, 0xf714, 0xf715, 0xf716, 0xf717,
++    0x00a0, 0x0e01, 0x0e02, 0x0e03, 0x0e04, 0x0e05, 0x0e06, 0x0e07,
++    0x0e08, 0x0e09, 0x0e0a, 0x0e0b, 0x0e0c, 0x0e0d, 0x0e0e, 0x0e0f,
++    0x0e10, 0x0e11, 0x0e12, 0x0e13, 0x0e14, 0x0e15, 0x0e16, 0x0e17,
++    0x0e18, 0x0e19, 0x0e1a, 0x0e1b, 0x0e1c, 0x0e1d, 0x0e1e, 0x0e1f,
++    0x0e20, 0x0e21, 0x0e22, 0x0e23, 0x0e24, 0x0e25, 0x0e26, 0x0e27,
++    0x0e28, 0x0e29, 0x0e2a, 0x0e2b, 0x0e2c, 0x0e2d, 0x0e2e, 0x0e2f,
++    0x0e30, 0x0e31, 0x0e32, 0x0e33, 0x0e34, 0x0e35, 0x0e36, 0x0e37,
++    0x0e38, 0x0e39, 0x0e3a,      0,      0,      0,      0, 0x0e3f,
++    0x0e40, 0x0e41, 0x0e42, 0x0e43, 0x0e44, 0x0e45, 0x0e46, 0x0e47,
++    0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e, 0x0e4f,
++    0x0e50, 0x0e51, 0x0e52, 0x0e53, 0x0e54, 0x0e55, 0x0e56, 0x0e57,
++    0x0e58, 0x0e59, 0x0e5a, 0x0e5b, 0xf718, 0xf719, 0xf71a,      0
++};
++
++enum ThaiFontType {
++    TIS,
++    WIN,
++    MAC
++};
++
++class ThaiFontUserData : public QObjectUserData
++{
++    public:
++    ThaiFontType font_type;
++    ThaiFontUserData(ThaiFontType font_t) : font_type(font_t) {}
++};
++
++static int get_glyph_index (ThaiFontType font_type,uchar c)
++{
++  switch (font_type) {
++    case TIS: return (c & 0x80) ? tis620_0[c & 0x7f] : c;
++    case WIN: return (c & 0x80) ? tis620_1[c & 0x7f] : c;
++    case MAC: return (c & 0x80) ? tis620_2[c & 0x7f] : c;
++    default:  return 0;
++  }
++}
++
++static int contain_glyphs(QShaperItem *item, const int glyph_map[128])
++{
++  unsigned char c;
++
++  for (c = 0; c < 0x80; c++)
++    {
++      if (glyph_map[c])
++        {
++            if (!item->font->canRender(&QChar(glyph_map[c]), 1)) {
++                //qDebug("font false !!");
++                return 0;
++            }
++        }
++    }
++  return 1;
++}
++
++static uint fontTypeUDataID()
++{
++    static uint fontTypeUDataID = QFontEngine::registerUserData();
++    return fontTypeUDataID;
++}
++
++static ThaiFontType getThaiFontType(QShaperItem *item)
++{
++    QOpenType *ot = item->font->openType();
++
++    if (!(ot && ot->supportsScript(item->script))) {
++        if (contain_glyphs(item,tis620_2))
++            return MAC;
++        else if (contain_glyphs(item,tis620_1))
++            return WIN;
++        else return TIS;
++    }
++    return TIS;
++}
++
++static bool thai_shape(QShaperItem *item)
++{
++#ifndef QT_NO_USERDATA
++    ThaiFontUserData *thaiFontData = reinterpret_cast<ThaiFontUserData *>(item->font->userData(fontTypeUDataID()));
++    if (thaiFontData == NULL) {
++        thaiFontData = new ThaiFontUserData(getThaiFontType(item));
++        item->font->setUserData(fontTypeUDataID(), thaiFontData);
++    }
++    ThaiFontType font_type = thaiFontData->font_type;
++#else
++    ThaiFontType font_type = getThaiFontType(item);
++#endif
++//     qDebug("thai_font type = %d",font_type);
++
++    thchar_t *tis_text;
++    int tis_length;
++    int n;
++    static QTextCodec *thaiCodec = QTextCodec::codecForMib(2259);
++    QString str = "";
++    const QChar *it_s = item->string->data();
++
++    QGlyphLayout *glyphs = item->glyphs;
++    unsigned short *logClusters = item->log_clusters;
++
++    for (int i = item->from;i < item->from + item->length;i++)
++        str.append(it_s[i]);
++
++    QByteArray tis_str = thaiCodec->fromUnicode(str);
++    tis_text = (thchar_t*)tis_str.data();
++    tis_length = strlen ((char *)tis_text);
++    QString glyphs_str = "";
++
++    for (int i = 0;i < tis_length;/* nop */) {
++        int cell_length;
++        struct thcell_t tis_cell;
++        thglyph_t log_glyphs[4];
++
++        cell_length = th_next_cell (tis_text + i, tis_length - i, &tis_cell, TRUE);
++
++        for(int j = 0;j < cell_length;j++)
++            logClusters[i + j] = glyphs_str.length();
++
++    //Make Logical Glyphs switch by font type
++        switch (font_type) {
++            case TIS: n = th_render_cell_tis (tis_cell, log_glyphs, sizeof(log_glyphs)/sizeof(log_glyphs[0]), TRUE);break;
++            case WIN: n = th_render_cell_mac (tis_cell, log_glyphs, sizeof(log_glyphs)/sizeof(log_glyphs[0]), TRUE);break;
++            case MAC: n = th_render_cell_win (tis_cell, log_glyphs, sizeof(log_glyphs)/sizeof(log_glyphs[0]), TRUE);break;
++        }
++    //Add glyphs to glyphs string
++        for (int a = 0;a < n;a++) {
++            if (log_glyphs[a] == TH_BLANK_BASE_GLYPH)
++                glyphs_str.append(0x25cc);
++            else
++                glyphs_str.append(QChar(get_glyph_index(font_type, log_glyphs[a])));
++        }
++
++        if (tis_cell.base != 0 && tis_cell.hilo == 0xd3) {
++            logClusters[i + cell_length - 1] = glyphs_str.length() - 2;
++            if (tis_cell.top != 0)
++                logClusters[i + cell_length - 1]--;
++        }
++
++        i += cell_length;
++    }
++
++#if !defined(QT_NO_OPENTYPE) && !defined(Q_WS_QWS)
++    const int availableGlyphs = item->num_glyphs;
++#endif
++
++    if (!item->font->stringToCMap(glyphs_str.unicode(), glyphs_str.length(),
++                                  item->glyphs, &item->num_glyphs, QFlag(item->flags)))
++        return false;
++
++// Set Attribute
++    int iCluster = 0;
++    while (iCluster < item->length) {
++        int beginCluster = logClusters[iCluster];
++        ++iCluster;
++        while (iCluster < item->length && logClusters[iCluster]==beginCluster)
++            ++iCluster;
++        int endCluster = (iCluster < item->length) ? logClusters[iCluster]:glyphs_str.length();
++        glyphs[beginCluster].attributes.clusterStart = true;
++        for (int i = beginCluster+1;i < endCluster;i++)
++            glyphs[i].attributes.clusterStart = false;
++    }
++
++    // disable open type shaping for simple scripts on embedded, as it's computationally rahter expensive
++#if !defined(QT_NO_OPENTYPE) && !defined(Q_WS_QWS)
++    QOpenType *openType = item->font->openType();
++    if (!openType && item->font->type() == QFontEngine::Multi) {
++        openType = static_cast<QFontEngineMulti *>(item->font)->engine(0)->openType();
++        if (openType) {
++            for (int i = 0; i < item->num_glyphs; ++i) {
++                if (item->glyphs[i].glyph & 0xff000000) {
++                    openType = 0;
++                    break;
++                }
++            }
++        }
++    }
++
++//   for (int i=0;i<item->length/*glyphs_str.length()*/;i++) {
++//         qDebug("logClusters[%d] = %d",i,logClusters[i]);
++//         qDebug("[%d] glyphs.clusterStart = %d,",i,glyphs[i].attributes.clusterStart);
++//         qDebug("glyph[%d] = %d,",i,glyphs_str[i].unicode());
++//         qDebug("it_s[%d] = %d",i,it_s[i].unicode());
++//    }
++
++    if (openType && openType->supportsScript(item->script)) {
++        openType->selectScript(item, item->script, basic_features);
++        openType->shape(item);
++        return openType->positionAndAdd(item, availableGlyphs, false);
++    }
++
++#endif
++
++    qt_heuristicPosition(item);
++    return true;
++}
++
++
+ 
+ // --------------------------------------------------------------------------------------------------------------------------------------------
+ //
+diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextcursor.cpp qt-x11-opensource-src-4.3.1/src/gui/text/qtextcursor.cpp
+--- qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextcursor.cpp	2007-08-07 20:08:43.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/qtextcursor.cpp	2007-11-08 14:59:05.000000000 +0700
+@@ -412,7 +412,8 @@
+         relativePos++;
+         while (relativePos < len
+                && !attributes[relativePos].whiteSpace
+-               && !engine->atWordSeparator(relativePos))
++               && !engine->atWordSeparator(relativePos)
++               && (attributes[relativePos-1].lineBreakType != QCharAttributes::Break))
+             relativePos++;
+ 
+         newPosition = blockIt.position() + relativePos;
+diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextlayout.cpp qt-x11-opensource-src-4.3.1/src/gui/text/qtextlayout.cpp
+--- qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextlayout.cpp	2007-08-07 20:08:43.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/qtextlayout.cpp	2007-11-08 15:21:25.000000000 +0700
+@@ -651,7 +651,8 @@
+             oldPos++;
+ 
+         while (oldPos < len && !attributes[oldPos-1].whiteSpace
+-               && !d->atWordSeparator(oldPos))
++               && !d->atWordSeparator(oldPos)
++               && attributes[oldPos-1].lineBreakType != QCharAttributes::Break)
+             oldPos++;
+     }
+ //      qDebug("  -> %d", oldPos);
+@@ -679,7 +680,8 @@
+             oldPos--;
+ 
+         while (oldPos && !attributes[oldPos-1].whiteSpace
+-               && !d->atWordSeparator(oldPos - 1))
++               && !d->atWordSeparator(oldPos - 1)
++               && attributes[oldPos-1].lineBreakType != QCharAttributes::Break)
+             oldPos--;
+     }
+ //     qDebug("  -> %d", oldPos);
+@@ -1799,7 +1801,7 @@
+             x += w;
+         if (ul && *ul != -1 && *ul < end) {
+             // draw underline
+-            gtmp = (*ul == end-1) ? ge : logClusters[*ul+1-si.position];
++            gtmp = (*ul == end-1) ? ge : logClusters[*ul-si.position] + 1;
+             ++stmp;
+             gf.num_glyphs = gtmp - gs;
+             gf.glyphs = glyphs + gs;
