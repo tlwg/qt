@@ -1,0 +1,158 @@
+diff -uNr qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.cpp qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.cpp
+--- qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.cpp	1970-01-01 07:00:00.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.cpp	2007-11-09 10:39:38.000000000 +0700
+@@ -0,0 +1,8 @@
++#include <thai/thailib.h>
++
++int main(int, char **)
++{
++    thchar_t c;
++    return 0;
++}
++	
+diff -uNr qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.pro qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.pro
+--- qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.pro	1970-01-01 07:00:00.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.pro	2007-11-09 10:39:38.000000000 +0700
+@@ -0,0 +1,4 @@
++SOURCES = libthai.cpp
++CONFIG -= qt
++CONFIG -= app_bundle
++
+diff -uNr qt-x11-opensource-src-4.3.1.org/configure qt-x11-opensource-src-4.3.1/configure
+--- qt-x11-opensource-src-4.3.1.org/configure	2007-08-07 20:08:41.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/configure	2007-11-09 10:36:22.000000000 +0700
+@@ -476,6 +476,9 @@
+ # the minimum version of libdbus-1 that we require:
+ MIN_DBUS_1_VERSION=0.62
+ 
++# libthai version
++MIN_LIBTHAI_VERSION=0.1.8
++
+ # initalize internal variables
+ CFG_CONFIGURE_EXIT_ON_ERROR=yes
+ CFG_PROFILE=no
+@@ -576,6 +579,7 @@
+ CFG_INOTIFY=auto
+ CFG_RPATH=yes
+ CFG_FRAMEWORK=auto
++CFG_LIBTHAI=auto
+ CFG_MAC_ARCHS=
+ CFG_MAC_DWARF2=no
+ CFG_SXE=no
+@@ -623,6 +627,10 @@
+ QT_CFLAGS_DBUS=
+ QT_LIBS_DBUS=
+ 
++# flags for libthai
++QT_CFLAGS_LIBTHAI=
++QT_LIBS_LIBTHAI=
++
+ # flags for Glib (X11 only)
+ QT_CFLAGS_GLIB=
+ QT_LIBS_GLIB=
+@@ -1420,6 +1428,13 @@
+             UNKNOWN_OPT=yes
+         fi
+         ;;
++    libthai)
++	if [ "$VAL" = "yes" ] || [ "$VAL" = "no" ]; then
++	    CFG_LIBTHAI="$VAL"
++    	else
++    	    UNKNOW_OPT=yes
++	fi
++	;;	
+     nis)
+         if [ "$VAL" = "yes" ] || [ "$VAL" = "no" ]; then
+             CFG_NIS="$VAL"
+@@ -2675,6 +2690,14 @@
+     DBY="+"
+     DBN=" "
+ fi
++if [ "$CFG_LIBTHAI" = "no" ]; then
++    LTHY=" "
++    LTHN="+"
++else
++    LTHY="+"
++    LTHN=" "
++fi
++
+     cat << EOF
+  $EXCN  -no-exceptions ..... Disable exceptions on compilers that support it.
+  $EXCY  -exceptions ........ Enable exceptions on compilers that support it.
+@@ -2792,6 +2815,9 @@
+  $DBN  -no-qdbus........... Do not compile the QtDBus module.
+  $DBY  -qdbus.............. Compile the QtDBus module.
+ 
++ $LTHN  -no-libthai......... Do not use libthai for Thai language support.
++ $LTHY  -libthai............ Use libthai for Thai language support.
++
+     -reduce-relocations ... Reduce relocations in the libraries through extra linker
+                             optimizations (Qt/X11 / Qtopia/Core only;
+                             experimental; needs GNU ld >= 2.18)
+@@ -4034,6 +4060,30 @@
+     fi
+ fi
+ 
++# auto-detect libthai support
++if [ "$CFG_LIBTHAI" != "no" ]; then
++    if [ "$QT_CROSS_COMPILE" = "no" ] && "$WHICH" pkg-config >/dev/null 2>&1 && \
++        pkg-config --atleast-version="$MIN_LIBTHAI_VERSION" libthai 2>/dev/null; then
++        QT_CFLAGS_LIBTHAI=`pkg-config --cflags libthai`
++        QT_LIBS_LIBTHAI=`pkg-config --libs libthai`
++    fi
++    if "$unixtests/compile.test" "$XQMAKESPEC" "$QMAKE_CONFIG" $OPT_VERBOSE "$relpath" "$outpath" config.tests/unix/libthai "LibThai" $L_FLAGS $I_FLAGS $l_FLAGS $QT_CFLAGS_LIBTHAI $QT_LIBS_LIBTHAI; then
++        CFG_LIBTHAI=yes
++        QMakeVar set QT_CFLAGS_LIBTHAI "$QT_CFLAGS_LIBTHAI"
++        QMakeVar set QT_LIBS_LIBTHAI "$QT_LIBS_LIBTHAI"
++    else
++        if [ "$CFG_LIBTHAI" = "yes" ] && [ "$CFG_CONFIGURE_EXIT_ON_ERROR" = "yes" ]; then
++            echo "Thai language support using LibThai cannot be enabled because libthai version $MIN_LIBTHAI_VERSION was not found."
++            echo " Turn on verbose messaging (-v) to $0 to see the final report."
++            echo " If you believe this message is in error you may use the continue"
++            echo " switch (-continue) to $0 to continue."
++            exit 101
++        else
++            CFG_LIBTHAI=no
++        fi
++    fi
++fi
++
+ # x11
+ if [ "$PLATFORM_X11" = "yes" ]; then
+     x11tests="$relpath/config.tests/x11"
+@@ -4734,6 +4784,7 @@
+ [ "$CFG_ICONV" = "gnu" ] && QT_CONFIG="$QT_CONFIG gnu-libiconv"
+ [ "$CFG_GLIB" = "yes" ] && QT_CONFIG="$QT_CONFIG glib"
+ [ "$CFG_QDBUS" = "yes" ] && QT_CONFIG="$QT_CONFIG qdbus"
++[ "$CFG_LIBTHAI" = "yes" ] && QT_CONFIG="$QT_CONFIG libthai"
+ [ "$CFG_NAS" = "system" ] && QT_CONFIG="$QT_CONFIG nas"
+ [ "$CFG_OPENSSL" = "yes" ] && QT_CONFIG="$QT_CONFIG openssl"
+ 
+@@ -5172,6 +5223,7 @@
+ [ "$CFG_IPV6" = "no" ]       && QCONFIG_FLAGS="$QCONFIG_FLAGS QT_NO_IPV6"
+ [ "$CFG_SXE" = "no" ]        && QCONFIG_FLAGS="$QCONFIG_FLAGS QT_NO_SXE"
+ [ "$CFG_QDBUS" != "yes" ]    && QCONFIG_FLAGS="$QCONFIG_FLAGS QT_NO_DBUS"
++[ "$CFG_LIBTHAI" != "yes" ]  && QCONFIG_FLAGS="$QCONFIG_FLAGS QT_NO_LIBTHAI"
+ 
+ # X11/Unix/Mac only configs
+ [ "$CFG_CUPS" = "no" ]       && QCONFIG_FLAGS="$QCONFIG_FLAGS QT_NO_CUPS"
+@@ -5484,6 +5536,7 @@
+ fi
+ echo "Qt 3 compatibility .. $CFG_QT3SUPPORT"
+ echo "QtDBus module ....... $CFG_QDBUS"
++echo "LIBTHAI module ...... $CFG_LIBTHAI"
+ echo "STL support ......... $CFG_STL"
+ echo "PCH support ......... $CFG_PRECOMPILE"
+ echo "MMX/3DNOW/SSE/SSE2..  ${CFG_MMX}/${CFG_3DNOW}/${CFG_SSE}/${CFG_SSE2}"
+diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/text.pri qt-x11-opensource-src-4.3.1/src/gui/text/text.pri
+--- qt-x11-opensource-src-4.3.1.org/src/gui/text/text.pri	2007-08-07 20:08:44.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/text.pri	2007-11-09 10:38:34.000000000 +0700
+@@ -181,3 +181,8 @@
+ } else {
+ 	DEFINES += QT_NO_OPENTYPE
+ }
++
++contains(QT_CONFIG, libthai) {
++	INCLUDEPATH += $$QT_CFLAGS_LIBTHAI
++	LIBS += $$QT_LIBS_LIBTHAI
++}
