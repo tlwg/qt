@@ -5,7 +5,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/inputmethod/qximinputcontext_p
      void update();
  
      ICData *icData() const;
-+    bool string_conv;
++    bool supports_string_conv;
  protected:
      bool x11FilterEvent( QWidget *keywidget, XEvent *event );
  
@@ -107,7 +107,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/inputmethod/qximinputcontext_x
          qt_xim_preferred_style = xim_default_style;
  
      xim = 0;
-+    string_conv = false;
++    supports_string_conv = false;
      QByteArray ximServerName(qt_ximServer);
      if (qt_ximServer)
          ximServerName.prepend("@im=");
@@ -126,7 +126,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/inputmethod/qximinputcontext_x
 +                if (strcmp (ic_values->supported_values[i],
 +                    XNStringConversionCallback) == 0)
 +                {   //qDebug("Support string conversion");
-+                   this->string_conv = true;
++                   this->supports_string_conv = true;
 +                   break;
 +                }            
 +            XFree (ic_values);
@@ -149,7 +149,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/inputmethod/qximinputcontext_x
          // when resetting the input context, preserve the input state
          (void) XSetICValues(data->ic, XNResetState, XIMPreserveState, (char *) 0);
 +        //Register string conversion callback
-+        if (this->string_conv) {
++        if (this->supports_string_conv) {
 +                string_conv_callback.client_data = (XPointer) this;
 +                string_conv_callback.callback = (XIMProc) string_conversion_callback;
 +                (void) XSetICValues(data->ic,
