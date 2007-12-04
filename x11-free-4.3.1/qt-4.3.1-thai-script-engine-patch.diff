@@ -1,6 +1,6 @@
 diff -uNr qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.cpp qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.cpp
 --- qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.cpp	1970-01-01 07:00:00.000000000 +0700
-+++ qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.cpp	2007-11-12 14:49:29.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.cpp	2007-12-04 11:52:06.000000000 +0700
 @@ -0,0 +1,8 @@
 +#include <thai/thailib.h>
 +
@@ -12,7 +12,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.cpp 
 +	
 diff -uNr qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.pro qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.pro
 --- qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.pro	1970-01-01 07:00:00.000000000 +0700
-+++ qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.pro	2007-11-12 14:49:29.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/config.tests/unix/libthai/libthai.pro	2007-12-04 11:52:06.000000000 +0700
 @@ -0,0 +1,4 @@
 +SOURCES = libthai.cpp
 +CONFIG -= qt
@@ -20,7 +20,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/config.tests/unix/libthai/libthai.pro 
 +
 diff -uNr qt-x11-opensource-src-4.3.1.org/configure qt-x11-opensource-src-4.3.1/configure
 --- qt-x11-opensource-src-4.3.1.org/configure	2007-08-07 20:08:41.000000000 +0700
-+++ qt-x11-opensource-src-4.3.1/configure	2007-11-12 14:49:29.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/configure	2007-12-04 11:52:06.000000000 +0700
 @@ -476,6 +476,9 @@
  # the minimum version of libdbus-1 that we require:
  MIN_DBUS_1_VERSION=0.62
@@ -146,7 +146,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/configure qt-x11-opensource-src-4.3.1/
  echo "MMX/3DNOW/SSE/SSE2..  ${CFG_MMX}/${CFG_3DNOW}/${CFG_SSE}/${CFG_SSE2}"
 diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-opensource-src-4.3.1/src/gui/text/qscriptengine.cpp
 --- qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp	2007-08-07 20:08:43.000000000 +0700
-+++ qt-x11-opensource-src-4.3.1/src/gui/text/qscriptengine.cpp	2007-11-12 15:06:56.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/qscriptengine.cpp	2007-12-04 11:53:50.000000000 +0700
 @@ -3468,10 +3468,14 @@
  // Thai and Lao
  //
@@ -171,7 +171,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 -    typedef int (*th_brk_def)(const char*, int[], int);
      static QTextCodec *thaiCodec = QTextCodec::codecForMib(2259);
 -    static th_brk_def th_brk = 0;
- 
+-
 -#ifndef QT_NO_LIBRARY
 -    /* load libthai dynamically */
 -    if (!th_brk && thaiCodec) {
@@ -180,15 +180,13 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 -            thaiCodec = 0;
 -    }
 -#endif
-+    QByteArray tis_str = thaiCodec->fromUnicode(QString(string, len));
- 
+-
 -    if (!th_brk)
 -        return;
-+    int *break_positions = new int[len];
-+    int numbreaks = th_brk((const thchar_t*)(tis_str.constData()), break_positions, len);
  
 -    QByteArray cstr = thaiCodec->fromUnicode(QString(string, len));
--
++    QByteArray tis_str = thaiCodec->fromUnicode(QString(string, len));
+ 
 -    int brp[128];
 -    int *break_positions = brp;
 -    int numbreaks = th_brk(cstr.constData(), break_positions, 128);
@@ -196,7 +194,9 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 -        break_positions = new int[numbreaks];
 -        numbreaks = th_brk(cstr.data(),break_positions, numbreaks);
 -    }
--
++    int *break_positions = new int[len];
++    int numbreaks = th_brk((const thchar_t*)(tis_str.constData()), break_positions, len);
+ 
 -    for (int i = 0; i < len - 1; ++i)
 +    for (int i = 0; i < len; ++i)
          attributes[i].lineBreakType = QCharAttributes::NoBreak;
@@ -238,7 +238,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
  #endif // QT_NO_TEXTCODEC
  }
  #endif
-@@ -3527,10 +3537,246 @@
+@@ -3527,10 +3537,248 @@
  {
      Q_UNUSED(script);
      Q_ASSERT(script == QUnicodeTables::Thai);
@@ -329,7 +329,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 +    case MAC: return (c & 0x80) ? tis620_2[c & 0x7f] : c;
 +    default:  return 0;
 +  }
-+}
+ }
 +
 +static int thai_contain_glyphs(QShaperItem *item, const int glyph_map[128])
 +{
@@ -366,7 +366,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 +        else return TIS;
 +    }
 +    return TIS;
- }
++}
 +
 +static bool thai_shape(QShaperItem *item)
 +{
@@ -379,7 +379,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 +    ThaiFontType font_type = thaiFontData->font_type;
 +#else
 +    ThaiFontType font_type = getThaiFontType(item);
-+#endif
+ #endif
 +//     qDebug("thai_font type = %d",font_type);
 +
 +    thchar_t *tis_text;
@@ -387,7 +387,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 +    static QTextCodec *thaiCodec = QTextCodec::codecForMib(2259);
 +    QGlyphLayout *glyphs = item->glyphs;
 +    unsigned short *logClusters = item->log_clusters;
-+
+ 
 +    QByteArray tis_str = thaiCodec->fromUnicode(item->string->data() + item->from, item->length);
 +    tis_text = (thchar_t*)tis_str.data();
 +    tis_length = tis_str.length();
@@ -399,7 +399,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 +        struct thcell_t tis_cell;
 +        thglyph_t log_glyphs[4];
 +
-+        cell_length = th_next_cell (tis_text + i, tis_length - i, &tis_cell, TRUE);
++        cell_length = th_next_cell (tis_text + i, tis_length - i, &tis_cell, !item->font->fontDef.fixedPitch);
 +
 +        for(int j = 0;j < cell_length;j++)
 +            logClusters[i + j] = glyphs_str.length();
@@ -412,8 +412,10 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 +        }
 +    //Add glyphs to glyphs string
 +        for (int a = 0;a < n;a++) {
-+            if (log_glyphs[a] == TH_BLANK_BASE_GLYPH)
-+                glyphs_str.append(0x25cc);
++            if (log_glyphs[a] == TH_BLANK_BASE_GLYPH) { 
++                if (!item->font->fontDef.fixedPitch)
++                    glyphs_str.append(0x25cc);
++            }
 +            else
 +                glyphs_str.append(QChar(thai_get_glyph_index(font_type, log_glyphs[a])));
 +        }
@@ -477,8 +479,8 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
 +        return openType->positionAndAdd(item, availableGlyphs, false);
 +    }
 +
- #endif
- 
++#endif
++
 +    qt_heuristicPosition(item);
 +    return true;
 +}
@@ -486,7 +488,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
  
  
  // --------------------------------------------------------------------------------------------------------------------------------------------
-@@ -5221,7 +5467,11 @@
+@@ -5221,7 +5469,11 @@
      // Sinhala
      { indic_shape, indic_attributes },
      // Thai
@@ -501,7 +503,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qscriptengine.cpp qt-x11-
      // Tibetan
 diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextcursor.cpp qt-x11-opensource-src-4.3.1/src/gui/text/qtextcursor.cpp
 --- qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextcursor.cpp	2007-08-07 20:08:43.000000000 +0700
-+++ qt-x11-opensource-src-4.3.1/src/gui/text/qtextcursor.cpp	2007-11-12 14:49:38.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/qtextcursor.cpp	2007-12-04 11:52:06.000000000 +0700
 @@ -412,7 +412,8 @@
          relativePos++;
          while (relativePos < len
@@ -514,7 +516,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextcursor.cpp qt-x11-op
          newPosition = blockIt.position() + relativePos;
 diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextlayout.cpp qt-x11-opensource-src-4.3.1/src/gui/text/qtextlayout.cpp
 --- qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextlayout.cpp	2007-08-07 20:08:43.000000000 +0700
-+++ qt-x11-opensource-src-4.3.1/src/gui/text/qtextlayout.cpp	2007-11-12 14:49:38.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/qtextlayout.cpp	2007-12-04 11:52:06.000000000 +0700
 @@ -651,7 +651,8 @@
              oldPos++;
  
@@ -546,7 +548,7 @@ diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/qtextlayout.cpp qt-x11-op
              gf.glyphs = glyphs + gs;
 diff -uNr qt-x11-opensource-src-4.3.1.org/src/gui/text/text.pri qt-x11-opensource-src-4.3.1/src/gui/text/text.pri
 --- qt-x11-opensource-src-4.3.1.org/src/gui/text/text.pri	2007-08-07 20:08:44.000000000 +0700
-+++ qt-x11-opensource-src-4.3.1/src/gui/text/text.pri	2007-11-12 14:49:29.000000000 +0700
++++ qt-x11-opensource-src-4.3.1/src/gui/text/text.pri	2007-12-04 11:52:06.000000000 +0700
 @@ -181,3 +181,8 @@
  } else {
  	DEFINES += QT_NO_OPENTYPE
