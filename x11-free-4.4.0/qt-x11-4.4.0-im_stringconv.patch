@@ -160,3 +160,15 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/gui/inputmethod/qximinputcontext_
      } else {
          qWarning("Failed to create XIC");
      }
+diff -Nur qt-x11-opensource-src-4.4.0.orig/src/gui/widgets/qlineedit.cpp qt-x11-opensource-src-4.4.0/src/gui/widgets/qlineedit.cpp
+--- qt-x11-opensource-src-4.4.0.orig/src/gui/widgets/qlineedit.cpp	2008-04-28 20:11:19.000000000 +0700
++++ qt-x11-opensource-src-4.4.0/src/gui/widgets/qlineedit.cpp	2008-07-28 18:55:19.000000000 +0700
+@@ -2162,7 +2162,7 @@
+ 
+     int c = d->cursor; // cursor position after insertion of commit string
+     if (e->replacementStart() <= 0)
+-        c += e->commitString().length() + qMin(-e->replacementStart(), e->replacementLength());
++        c += e->commitString().length() - qMin(-e->replacementStart(), e->replacementLength());
+ 
+     d->cursor += e->replacementStart();
+ 
