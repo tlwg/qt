@@ -1,0 +1,45 @@
+diff -Nur qt-x11-opensource-src-4.4.0.orig/src/gui/text/qtextcursor.cpp qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/qtextcursor.cpp
+--- qt-x11-opensource-src-4.4.0.orig/src/gui/text/qtextcursor.cpp	2008-04-28 20:11:19.000000000 +0700
++++ qt-x11-opensource-src-4.4.0/src/gui/text/qtextcursor.cpp	2008-07-25 10:05:45.000000000 +0700
+@@ -428,7 +428,8 @@
+         relativePos++;
+         while (relativePos < len
+                && !attributes[relativePos].whiteSpace
+-               && !engine->atWordSeparator(relativePos))
++               && !engine->atWordSeparator(relativePos)
++               && !attributes[relativePos - 1].wordBoundary)
+             relativePos++;
+ 
+         newPosition = blockIt.position() + relativePos;
+diff -Nur qt-x11-opensource-src-4.4.0.orig/src/gui/text/qtextlayout.cpp qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/qtextlayout.cpp
+--- qt-x11-opensource-src-4.4.0.orig/src/gui/text/qtextlayout.cpp	2008-04-28 20:11:19.000000000 +0700
++++ qt-x11-opensource-src-4.4.0/src/gui/text/qtextlayout.cpp	2008-07-25 10:06:10.000000000 +0700
+@@ -662,7 +662,8 @@
+             oldPos++;
+ 
+         while (oldPos < len && !attributes[oldPos-1].whiteSpace
+-               && !d->atWordSeparator(oldPos - 1))
++               && !d->atWordSeparator(oldPos - 1)
++               && !attributes[oldPos - 1].wordBoundary)
+             oldPos++;
+     }
+ //      qDebug("  -> %d", oldPos);
+@@ -690,7 +691,8 @@
+             oldPos--;
+ 
+         while (oldPos && !attributes[oldPos-1].whiteSpace
+-               && !d->atWordSeparator(oldPos - 1))
++               && !d->atWordSeparator(oldPos - 1)
++               && !attributes[oldPos - 1].wordBoundary)
+             oldPos--;
+     }
+ //     qDebug("  -> %d", oldPos);
+@@ -1825,7 +1827,7 @@
+             x += w;
+         if (ul && *ul != -1 && *ul < end) {
+             // draw underline
+-            gtmp = (*ul == end-1) ? ge : logClusters[*ul+1-si.position];
++            gtmp = (*ul == end-1) ? ge : logClusters[*ul-si.position] + 1;
+             ++stmp;
+             gf.num_glyphs = gtmp - gs;
+             gf.glyphs = glyphs + gs;
