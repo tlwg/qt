@@ -551,7 +551,7 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-th
 +        brk_n = th_brk ( (const unsigned char*) tis_text, brk_pnts, len );
 +        for (i = 0; i < brk_n; i++) {
 +            if (brk_pnts[i] > 0) {
-+                attributes[brk_pnts[i]-1].lineBreakType = HB_SoftHyphen;
++                attributes[brk_pnts[i]-1].lineBreakType = HB_Break;
 +                attributes[brk_pnts[i]-1].wordBoundary = true;
 +            }
 +        }
