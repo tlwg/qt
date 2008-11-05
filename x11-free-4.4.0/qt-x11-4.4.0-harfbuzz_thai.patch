@@ -1,6 +1,6 @@
-diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp
---- qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp	2008-04-28 20:11:15.000000000 +0700
-+++ qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp	2008-07-22 12:55:29.000000000 +0700
+diff -uNr qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp
+--- qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp	2008-09-27 15:58:44.000000000 +0700
++++ qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper-all.cpp	2008-11-05 16:19:23.000000000 +0700
 @@ -8,5 +8,6 @@
  #include "harfbuzz-arabic.c"
  #include "harfbuzz-hangul.c"
@@ -8,9 +8,9 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-sh
 +#include "harfbuzz-thai.c"
  }
  
-diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp
---- qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp	2008-04-28 20:11:15.000000000 +0700
-+++ qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp	2008-08-08 09:09:50.000000000 +0700
+diff -uNr qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp
+--- qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp	2008-09-27 15:58:44.000000000 +0700
++++ qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper.cpp	2008-11-05 16:19:23.000000000 +0700
 @@ -570,8 +570,6 @@
      return true;
  }
@@ -29,9 +29,20 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-sh
      // Lao
      { HB_BasicShape, 0 },
      // Tibetan
-diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h
---- qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h	2008-04-28 20:11:15.000000000 +0700
-+++ qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h	2008-07-30 09:52:01.000000000 +0700
+diff -uNr qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper.h qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper.h
+--- qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper.h	2008-09-27 15:58:44.000000000 +0700
++++ qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper.h	2008-11-05 16:19:56.000000000 +0700
+@@ -246,6 +246,7 @@
+ 
+     /* internal */
+     HB_Bool kerning_applied; /* out: kerning applied by shaper */
++    HB_Bool fixedPitch;
+ } HB_ShaperItem;
+ 
+ HB_Bool HB_ShapeItem(HB_ShaperItem *item);
+diff -uNr qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h
+--- qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h	2008-09-27 15:58:44.000000000 +0700
++++ qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-shaper-private.h	2008-11-05 16:19:23.000000000 +0700
 @@ -92,6 +92,7 @@
  extern HB_Bool HB_MyanmarShape(HB_ShaperItem *shaper_item);
  extern HB_Bool HB_KhmerShape(HB_ShaperItem *shaper_item);
@@ -49,10 +60,10 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-sh
  typedef struct {
      hb_uint32 tag;
      hb_uint32 property;
-diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-thai.c qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-thai.c
---- qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-thai.c	1970-01-01 07:00:00.000000000 +0700
-+++ qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-thai.c	2008-08-07 23:56:28.000000000 +0700
-@@ -0,0 +1,521 @@
+diff -uNr qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-thai.c qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-thai.c
+--- qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/harfbuzz-thai.c	1970-01-01 07:00:00.000000000 +0700
++++ qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/harfbuzz-thai.c	2008-11-05 16:19:56.000000000 +0700
+@@ -0,0 +1,525 @@
 +/*
 + * Copyright (C) 2007  Trolltech ASA
 + *
@@ -384,7 +395,7 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-th
 +static HB_Bool HB_ThaiConvertStringToGlyphIndices (HB_ShaperItem *item)
 +{
 +    /* Get font type first */
-+    ThaiFontType font_type = getThaiFontType (item);
++    ThaiFontType font_type = getThaiFontType (item); // FIXME should cache this value somehow
 +
 +    const HB_UChar16 *uc = item->string + item->item.pos;
 +    const hb_uint32 length = item->item.length;
@@ -392,8 +403,6 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-th
 +
 +    hb_uint32 i = 0, slen = 0;
 +    unsigned char tis_text[length + 1];
-+
-+    HB_Bool isFixedPitch = false; /* FIXME waiting for check */
 +
 +    /* translate input string to tis */
 +    for (hb_uint32 idx = 0; idx < length; ++idx) {
@@ -411,7 +420,7 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-th
 +        int lgn = 0;
 +        HB_Bool haveSaraAm = false;
 +
-+        cell_length = th_next_cell (tis_text + i, length - i, &tis_cell, !isFixedPitch);
++        cell_length = th_next_cell (tis_text + i, length - i, &tis_cell, !item->fixedPitch);
 +        haveSaraAm  = (tis_text[i + cell_length - 1] == 0xd3);
 +
 +        /* set shaper item's log_clusters */
@@ -430,19 +439,25 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-th
 +        /* Add glyphs to glyphs string and setting some attributes */
 +        for (int lgi = 0; lgi < lgn; lgi++) {
 +            HB_UChar16 ch;
-+            if ( rglyphs[lgi] == 0xdd/*TH_BLANK_BASE_GLYPH*/ ) { /*if ( !isFixedPitch )*/
-+                ch = glyphString[slen++] = C_DOTTED_CIRCLE;
-+                item->attributes[slen-1].dontPrint = true; /* FIXME : waiting for correct this */
-+            }
++	    if ( rglyphs[lgi] == 0xdd/*TH_BLANK_BASE_GLYPH*/ ) { 
++		    if ( !item->fixedPitch ) {
++			    ch = glyphString[slen++] = C_DOTTED_CIRCLE;
++			    item->attributes[slen-1].dontPrint = true; // FIXME this will hide all dotted circle
++		    }
++	    }
 +            else {
 +                ch = glyphString[slen++] = (HB_UChar16) thai_get_glyph_index (font_type, rglyphs[lgi]);
 +            }
 +        }
 +
 +        if (haveSaraAm) {
-+            logClusters[i + cell_length - 1] = slen - 2;
++            logClusters[i + cell_length - 1] = slen - 2; // Set logClusters before NIKAHIT
 +            if (tis_cell.top != 0)
-+                logClusters[i + cell_length - 1]--;
++                logClusters[i + cell_length - 1]--; // Set logClusters before NIKAHIT when tis_cell has top
++
++	    //printf("logClusters[%d] is %d, length = %d\n", i + cell_length - 1, logClusters[i + cell_length - 1]);
++	    if (logClusters[i + cell_length - 1] > slen ) 
++		    logClusters[i + cell_length - 1] = 0;
 +        }
 +
 +        i += cell_length;
@@ -574,84 +589,9 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-th
 +        i += cell_length;
 +    }
 +}
-diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-thai.cpp qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-thai.cpp
---- qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/harfbuzz-thai.cpp	2008-04-28 20:11:15.000000000 +0700
-+++ qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/harfbuzz-thai.cpp	1970-01-01 07:00:00.000000000 +0700
-@@ -1,71 +0,0 @@
--/*******************************************************************
-- *
-- *  Copyright 2007  Trolltech ASA
-- *
-- *  This is part of HarfBuzz, an OpenType Layout engine library.
-- *
-- *  See the file name COPYING for licensing information.
-- *
-- ******************************************************************/
--
--#if 0
--#include <qtextcodec.h>
--#include <qlibrary.h>
--
--
--static void thaiWordBreaks(const QChar *string, const int len, QCharAttributes *attributes)
--{
--#ifdef QT_NO_TEXTCODEC
--    Q_UNUSED(string);
--    Q_UNUSED(len);
--    Q_UNUSED(attributes);
--#else
--    typedef int (*th_brk_def)(const char*, int[], int);
--    static QTextCodec *thaiCodec = QTextCodec::codecForMib(2259);
--    static th_brk_def th_brk = 0;
--
--#ifndef QT_NO_LIBRARY
--    /* load libthai dynamically */
--    if (!th_brk && thaiCodec) {
--        th_brk = (th_brk_def)QLibrary::resolve(QLatin1String("thai"), "th_brk");
--        if (!th_brk)
--            thaiCodec = 0;
--    }
--#endif
--
--    if (!th_brk)
--        return;
--
--    QByteArray cstr = thaiCodec->fromUnicode(QString(string, len));
--
--    int brp[128];
--    int *break_positions = brp;
--    int numbreaks = th_brk(cstr.constData(), break_positions, 128);
--    if (numbreaks > 128) {
--        break_positions = new int[numbreaks];
--        numbreaks = th_brk(cstr.data(),break_positions, numbreaks);
--    }
--
--    for (int i = 0; i < len - 1; ++i)
--        attributes[i].lineBreakType = QCharAttributes::NoBreak;
--
--    for (int i = 0; i < numbreaks; ++i) {
--        if (break_positions[i] > 0)
--            attributes[break_positions[i]-1].lineBreakType = QCharAttributes::Break;
--    }
--
--    if (break_positions != brp)
--        delete [] break_positions;
--#endif // QT_NO_TEXTCODEC
--}
--
--
--static void thai_attributes( int script, const QString &text, int from, int len, QCharAttributes *attributes )
--{
--    Q_UNUSED(script);
--    Q_ASSERT(script == QUnicodeTables::Thai);
--    thaiWordBreaks(text.unicode() + from, len, attributes);
--}
--
--
--#endif
-diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/Makefile.am qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/Makefile.am
---- qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/Makefile.am	2008-04-28 20:11:15.000000000 +0700
-+++ qt-x11-opensource-src-4.4.0/src/3rdparty/harfbuzz/src/Makefile.am	2008-07-22 12:54:59.000000000 +0700
+diff -uNr qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/Makefile.am qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/Makefile.am
+--- qt4-x11-4.4.3.org/src/3rdparty/harfbuzz/src/Makefile.am	2008-09-27 15:58:44.000000000 +0700
++++ qt4-x11-4.4.3/src/3rdparty/harfbuzz/src/Makefile.am	2008-11-05 16:19:33.000000000 +0700
 @@ -18,7 +18,8 @@
  	harfbuzz-hebrew.c \
  	harfbuzz-arabic.c \
@@ -662,3 +602,14 @@ diff -Nur qt-x11-opensource-src-4.4.0.orig/src/3rdparty/harfbuzz/src/Makefile.am
  
  EXTRA_SOURCES = harfbuzz.c
  
+diff -uNr qt4-x11-4.4.3.org/src/gui/text/qtextengine.cpp qt4-x11-4.4.3/src/gui/text/qtextengine.cpp
+--- qt4-x11-4.4.3.org/src/gui/text/qtextengine.cpp	2008-09-27 15:58:47.000000000 +0700
++++ qt4-x11-4.4.3/src/gui/text/qtextengine.cpp	2008-11-05 16:19:56.000000000 +0700
+@@ -1114,6 +1114,7 @@
+     entire_shaper_item.item.length = length(item);
+     entire_shaper_item.item.bidiLevel = si.analysis.bidiLevel;
+     entire_shaper_item.glyphIndicesPresent = false;
++    entire_shaper_item.fixedPitch = (HB_Bool) font->fontDef.fixedPitch;
+ 
+     HB_UChar16 upperCased[256]; // XXX what about making this 4096, so we don't have to extend it ever.
+     if (si.analysis.flags == QScriptAnalysis::SmallCaps || si.analysis.flags == QScriptAnalysis::Uppercase
