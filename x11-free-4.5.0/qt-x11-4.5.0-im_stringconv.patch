@@ -1,0 +1,169 @@
+diff -Nur qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/inputmethod/qximinputcontext_p.h qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/inputmethod/qximinputcontext_p.h
+--- qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/inputmethod/qximinputcontext_p.h	2009-02-08 07:39:41.000000000 +0700
++++ qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/inputmethod/qximinputcontext_p.h	2009-02-11 23:30:16.000000000 +0700
+@@ -116,6 +116,8 @@
+     void update();
+ 
+     ICData *icData() const;
++
++    bool supports_string_conv;
+ protected:
+     bool x11FilterEvent( QWidget *keywidget, XEvent *event );
+ 
+diff -Nur qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/inputmethod/qximinputcontext_x11.cpp qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/inputmethod/qximinputcontext_x11.cpp
+--- qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/inputmethod/qximinputcontext_x11.cpp	2009-02-08 07:39:41.000000000 +0700
++++ qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/inputmethod/qximinputcontext_x11.cpp	2009-02-12 00:38:02.000000000 +0700
+@@ -274,6 +274,94 @@
+ 	// handles InputMethodEnd with commit string.
+ 	return 0;
+     }
++
++    static void xic_string_conversion_callback(XIC, XPointer client_data, XPointer call_data) {
++        // qDebug("xic_string_conversion_callback");
++        QXIMInputContext *qic = reinterpret_cast<QXIMInputContext *>(client_data);
++        XIMStringConversionCallbackStruct *conv_data = reinterpret_cast<XIMStringConversionCallbackStruct *>(call_data);
++
++        //if (! LangNeededStringConv.contains( qic->language() ) )
++        //    return;
++
++        QString surrounding = qic->icData()->widget->inputMethodQuery(Qt::ImSurroundingText).toString();
++        int cursor_index = qic->icData()->widget->inputMethodQuery(Qt::ImCursorPosition).toInt();
++
++        if (!surrounding.isNull()) {
++            int  subst_offset = 0, subst_nchars = 0;
++            int  i;
++            short position = (short)conv_data->position;
++
++            /* According to X11R6.4 Xlib - C Library Reference Manual
++             * section 13.5.7.3 String Conversion Callback,
++             * XIMStringConversionPosition is starting position _relative_
++             * to current client's cursor position. So it should be able
++             * to be negative, or referring to a position before the cursor
++             * would be impossible. But current X protocol defines this as
++             * unsigned short. So, compiler may warn about the value range
++             * here. We hope the X protocol is fixed soon.
++             */
++            QString str_tmp;
++
++            switch (conv_data->direction)
++            {
++            case XIMForwardChar:
++                if (cursor_index > 0 && cursor_index+position >= 0)
++                    for (i = cursor_index+position; i < cursor_index+position+conv_data->factor; i++)
++                        str_tmp.append(surrounding[i]);
++
++                subst_offset = position + conv_data->factor;
++                subst_nchars = conv_data->factor;
++                break;
++
++            case XIMBackwardChar:
++                if (cursor_index > 0 && cursor_index+position-conv_data->factor >= 0)
++                    for (i = cursor_index+position-conv_data->factor; i < cursor_index+position; i++)
++                        str_tmp.append(surrounding[i]);
++
++                subst_offset = position - conv_data->factor;
++                subst_nchars = conv_data->factor;
++                break;
++
++            case XIMForwardWord:
++            case XIMBackwardWord:
++            case XIMCaretUp:
++            case XIMCaretDown:
++            case XIMNextLine:
++            case XIMPreviousLine:
++            case XIMLineStart:
++            case XIMLineEnd:
++            case XIMAbsolutePosition:
++            case XIMDontChange:
++            default:
++                break;
++            }
++
++            /* block out any failure happenning to "text", including conversion */
++            if (!str_tmp.isNull()) {
++                conv_data->text = (XIMStringConversionText *)malloc (sizeof (XIMStringConversionText));
++                if (conv_data->text) {
++                    conv_data->text->length = str_tmp.length();
++                    conv_data->text->feedback = NULL;
++                    conv_data->text->encoding_is_wchar = True;
++                    conv_data->text->string.wcs = (wchar_t *) malloc (str_tmp.length() * sizeof (wchar_t));
++                    if (conv_data->text->string.wcs) {
++                        for (i = 0; i < str_tmp.length(); i++)
++                            conv_data->text->string.wcs[i] = str_tmp[i].unicode();
++                    }
++                    else {
++                        free (conv_data->text);
++                        conv_data->text = NULL;
++                    }
++                }
++            }
++
++            if (conv_data->operation == XIMStringConversionSubstitution && subst_nchars > 0) {
++                QInputMethodEvent im_event;
++                im_event.setCommitString(QLatin1String(""), subst_offset, subst_nchars);
++                qic->sendEvent(im_event);
++            }
++        }
++    }
+ }
+ 
+ void QXIMInputContext::ICData::clear()
+@@ -342,6 +430,7 @@
+         qt_xim_preferred_style = xim_default_style;
+ 
+     xim = 0;
++    supports_string_conv = false;
+     QByteArray ximServerName(qt_ximServer);
+     if (qt_ximServer)
+         ximServerName.prepend("@im=");
+@@ -387,7 +476,8 @@
+ #endif // USE_X11R6_XIM
+ 
+         XIMStyles *styles = 0;
+-        XGetIMValues(xim, XNQueryInputStyle, &styles, (char *) 0, (char *) 0);
++        XIMValuesList *ic_values = 0;
++        XGetIMValues(xim, XNQueryInputStyle, &styles, XNQueryICValuesList, &ic_values, (char *) 0);
+         if (styles) {
+             int i;
+             for (i = 0; !xim_style && i < styles->count_styles; i++) {
+@@ -417,6 +507,18 @@
+             XFree((char *)styles);
+         }
+ 
++        // Check support string converion flag
++        if (ic_values) {
++            for (int i = 0; i < ic_values->count_values; i++) {
++                if (strcmp (ic_values->supported_values[i],
++                            XNStringConversionCallback) == 0) {
++                    supports_string_conv = true;
++                    break;
++                }
++            }
++            XFree (ic_values);
++        }
++
+         if (xim_style) {
+ 
+ #ifdef USE_X11R6_XIM
+@@ -680,7 +782,7 @@
+     data->widget = w;
+ 
+     XVaNestedList preedit_attr = 0;
+-    XIMCallback startcallback, drawcallback, donecallback;
++    XIMCallback startcallback, drawcallback, donecallback, stringconv_callback;
+ 
+     QFont font = w->font();
+     data->fontset = getFontSet(font);
+@@ -737,6 +839,12 @@
+     if (data->ic) {
+         // when resetting the input context, preserve the input state
+         (void) XSetICValues(data->ic, XNResetState, XIMPreserveState, (char *) 0);
++        // Register string conversion callback
++        if (supports_string_conv) {
++            stringconv_callback.client_data = (XPointer) this;
++            stringconv_callback.callback = (XIMProc) xic_string_conversion_callback;
++            (void) XSetICValues(data->ic, XNStringConversionCallback, &stringconv_callback, (char *) 0);
++        }
+     } else {
+         qWarning("Failed to create XIC");
+     }

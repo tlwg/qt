@@ -1,0 +1,21 @@
+diff -Nur qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/corelib/tools/qtextboundaryfinder.cpp qt-x11-opensource-src-4.5.0-snapshot-20090208/src/corelib/tools/qtextboundaryfinder.cpp
+--- qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/corelib/tools/qtextboundaryfinder.cpp	2009-02-08 07:39:40.000000000 +0700
++++ qt-x11-opensource-src-4.5.0-snapshot-20090208/src/corelib/tools/qtextboundaryfinder.cpp	2009-02-12 10:40:06.843705204 +0700
+@@ -351,7 +351,7 @@
+             ++pos;
+         break;
+     case Line:
+-        while (pos < length && d->attributes[pos].lineBreakType < HB_Break)
++        while (pos < length && d->attributes[pos-1].lineBreakType < HB_Break)
+             ++pos;
+         break;
+     }
+@@ -393,7 +393,7 @@
+             --pos;
+         break;
+     case Line:
+-        while (pos > 0 && d->attributes[pos].lineBreakType < HB_Break)
++        while (pos > 0 && d->attributes[pos-1].lineBreakType < HB_Break)
+             --pos;
+         break;
+     }
