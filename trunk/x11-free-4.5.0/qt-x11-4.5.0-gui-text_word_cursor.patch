@@ -1,0 +1,96 @@
+diff -Nur qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextcursor.cpp qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextcursor.cpp
+--- qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextcursor.cpp	2009-02-08 07:39:41.000000000 +0700
++++ qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextcursor.cpp	2009-02-11 21:50:17.000000000 +0700
+@@ -486,8 +486,10 @@
+             while (relativePos < len && engine->atWordSeparator(relativePos))
+                 ++relativePos;
+         } else {
+-            while (relativePos < len && !engine->atSpace(relativePos) && !engine->atWordSeparator(relativePos))
++            while (relativePos < len && !engine->atSpace(relativePos) && !engine->atWordSeparator(relativePos+1)) {
+                 ++relativePos;
++                if (engine->atWordBoundary(relativePos)) break;
++            }
+         }
+         newPosition = blockIt.position() + relativePos;
+         break;
+diff -Nur qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextengine.cpp qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextengine.cpp
+--- qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextengine.cpp	2009-02-08 07:39:41.000000000 +0700
++++ qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextengine.cpp	2009-02-12 10:03:52.519722408 +0700
+@@ -2204,6 +2204,11 @@
+         ;
+ }
+ 
++bool QTextEngine::atWordBoundary(int position) const
++{
++    const HB_CharAttributes *attribs = attributes();
++    return (attribs ? attribs[position].wordBoundary : false);
++}
+ 
+ void QTextEngine::indexAdditionalFormats()
+ {
+diff -Nur qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextengine_p.h qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextengine_p.h
+--- qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextengine_p.h	2009-02-08 07:39:41.000000000 +0700
++++ qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextengine_p.h	2009-02-11 21:32:29.000000000 +0700
+@@ -565,6 +565,7 @@
+ 
+     bool atWordSeparator(int position) const;
+     bool atSpace(int position) const;
++    bool atWordBoundary(int position) const;
+     void indexAdditionalFormats();
+ 
+     QString elidedText(Qt::TextElideMode mode, const QFixed &width, int flags = 0) const;
+diff -Nur qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextlayout.cpp qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextlayout.cpp
+--- qt-x11-opensource-src-4.5.0-snapshot-20090208.orig/src/gui/text/qtextlayout.cpp	2009-02-08 07:39:41.000000000 +0700
++++ qt-x11-opensource-src-4.5.0-snapshot-20090208/src/gui/text/qtextlayout.cpp	2009-02-12 10:11:07.259700463 +0700
+@@ -651,6 +651,8 @@
+ 
+     if (oldPos >= len)
+         return oldPos;
++
++    int checkPos = oldPos;
+     if (mode == SkipCharacters) {
+         oldPos++;
+         while (oldPos < len && !attributes[oldPos].charStop)
+@@ -661,8 +663,11 @@
+             while (oldPos < len && d->atWordSeparator(oldPos))
+                 oldPos++;
+         } else {
+-            while (oldPos < len && !d->atSpace(oldPos) && !d->atWordSeparator(oldPos))
++            while (oldPos < len && !d->atSpace(oldPos) && !d->atWordSeparator(oldPos)) {
++                if (checkPos != oldPos && d->atWordBoundary(oldPos))
++                    break;
+                 oldPos++;
++            }
+         }
+         while (oldPos < len && d->atSpace(oldPos))
+             oldPos++;
+@@ -683,6 +688,7 @@
+     const HB_CharAttributes *attributes = d->attributes();
+     if (!attributes || oldPos <= 0)
+         return 0;
++
+     if (mode == SkipCharacters) {
+         oldPos--;
+         while (oldPos && !attributes[oldPos].charStop)
+@@ -696,8 +702,11 @@
+             while (oldPos && d->atWordSeparator(oldPos-1))
+                 oldPos--;
+         } else {
+-            while (oldPos && !d->atSpace(oldPos-1) && !d->atWordSeparator(oldPos-1))
++            while (oldPos && !d->atSpace(oldPos-1) && !d->atWordSeparator(oldPos-1)) {
+                 oldPos--;
++                if (d->atWordBoundary(oldPos))
++                    break;
++            }
+         }
+     }
+ //     qDebug("  -> %d", oldPos);
+@@ -1875,7 +1884,7 @@
+             x += w;
+         if (ul && *ul != -1 && *ul < end) {
+             // draw underline
+-            gtmp = (*ul == end-1) ? ge : logClusters[*ul+1-si.position];
++            gtmp = (*ul == end-1) ? ge : logClusters[*ul-si.position]+1;
+             ++stmp;
+             gf.glyphs = glyphs.mid(gs, gtmp - gs);
+             gf.num_chars = stmp - start;
