@@ -1,0 +1,75 @@
+diff -uNr qt-everywhere-opensource-src-4.6.1.orig/src/gui/text/qtextcursor.cpp qt-everywhere-opensource-src-4.6.1/src/gui/text/qtextcursor.cpp
+--- qt-everywhere-opensource-src-4.6.1.orig/src/gui/text/qtextcursor.cpp	2010-01-16 00:01:34.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.1/src/gui/text/qtextcursor.cpp	2010-02-23 08:44:10.767987332 +0700
+@@ -503,8 +503,10 @@
+             while (relativePos < len && engine->atWordSeparator(relativePos))
+                 ++relativePos;
+         } else {
+-            while (relativePos < len && !engine->atSpace(relativePos) && !engine->atWordSeparator(relativePos))
++            while (relativePos < len && !engine->atSpace(relativePos) && !engine->atWordSeparator(relativePos)) {
+                 ++relativePos;
++                if (engine->attributes() && engine->attributes()[relativePos].wordBoundary) break;
++            }
+         }
+         newPosition = blockIt.position() + relativePos;
+         break;
+diff -uNr qt-everywhere-opensource-src-4.6.1.orig/src/gui/text/qtextengine.cpp qt-everywhere-opensource-src-4.6.1/src/gui/text/qtextengine.cpp
+--- qt-everywhere-opensource-src-4.6.1.orig/src/gui/text/qtextengine.cpp	2010-01-16 00:01:34.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.1/src/gui/text/qtextengine.cpp	2010-02-23 08:52:13.576747529 +0700
+@@ -1650,6 +1650,9 @@
+                 }
+             }
+ 
++            if (logClusters[pos + ilen - 1] >= glyphs.numGlyphs)
++                logClusters[pos + ilen - 1] = glyphs.numGlyphs - 1;
++
+             glyph_t glyph = glyphs.glyphs[logClusters[pos + ilen - 1]];
+             glyph_metrics_t gi = fe->boundingBox(glyph);
+             if (gi.isValid())
+diff -uNr qt-everywhere-opensource-src-4.6.1.orig/src/gui/text/qtextlayout.cpp qt-everywhere-opensource-src-4.6.1/src/gui/text/qtextlayout.cpp
+--- qt-everywhere-opensource-src-4.6.1.orig/src/gui/text/qtextlayout.cpp	2010-01-16 00:01:34.000000000 +0700
++++ qt-everywhere-opensource-src-4.6.1/src/gui/text/qtextlayout.cpp	2010-02-23 08:51:08.708737389 +0700
+@@ -658,6 +658,8 @@
+ 
+     if (oldPos >= len)
+         return oldPos;
++
++    int checkPos = oldPos;
+     if (mode == SkipCharacters) {
+         oldPos++;
+         while (oldPos < len && !attributes[oldPos].charStop)
+@@ -668,8 +670,11 @@
+             while (oldPos < len && d->atWordSeparator(oldPos))
+                 oldPos++;
+         } else {
+-            while (oldPos < len && !d->atSpace(oldPos) && !d->atWordSeparator(oldPos))
++            while (oldPos < len && !d->atSpace(oldPos) && !d->atWordSeparator(oldPos)) {
++                if (checkPos != oldPos && attributes[oldPos].wordBoundary)
++                    break;
+                 oldPos++;
++            }
+         }
+         while (oldPos < len && d->atSpace(oldPos))
+             oldPos++;
+@@ -703,8 +708,11 @@
+             while (oldPos && d->atWordSeparator(oldPos-1))
+                 oldPos--;
+         } else {
+-            while (oldPos && !d->atSpace(oldPos-1) && !d->atWordSeparator(oldPos-1))
++            while (oldPos && !d->atSpace(oldPos-1) && !d->atWordSeparator(oldPos-1)) {
+                 oldPos--;
++                if (attributes[oldPos].wordBoundary)
++                    break;
++            }
+         }
+     }
+ //     qDebug("  -> %d", oldPos);
+@@ -2018,7 +2026,7 @@
+             x += w;
+         if (ul && *ul != -1 && *ul < end) {
+             // draw underline
+-            gtmp = (*ul == end-1) ? ge : logClusters[*ul+1-si.position];
++            gtmp = (*ul == end-1) ? ge : logClusters[*ul-si.position]+1;
+             ++stmp;
+             gf.glyphs = glyphs.mid(gs, gtmp - gs);
+             gf.num_chars = stmp - start;
